@@ -37,9 +37,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   File? selectedImage;
-  String? message = "";
+  String? message, facecount;
   bool kontrol = true;
   uploadImage() async {
+    setState(() {
+      kontrol = true;
+    });
     final request =
         http.MultipartRequest("POST", Uri.parse("http://10.0.2.2:5000/upload"));
     final headers = {"Content-type": "multipart/form-data"};
@@ -50,9 +53,11 @@ class _MyHomePageState extends State<MyHomePage> {
     final response = await request.send();
     http.Response res = await http.Response.fromStream(response);
     final resJson = jsonDecode(res.body);
-    message = resJson['message'].toString();
-    kontrol = false;
-    setState(() {});
+
+    setState(() {
+      message = "http://10.0.2.2:5000/upload/" + resJson['path'].toString();
+      facecount = resJson['facecount'].toString();
+    });
   }
 
   Future getImage() async {
@@ -78,23 +83,37 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             selectedImage == null
                 ? Text("İşlencek Resmi seçiniz")
-                : Row(
+                : Column(
                     children: [
                       SizedBox(
                           width: 200,
                           height: 200,
                           child: Image.file(selectedImage!)),
+                      facecount == null
+                          ? Text("Yüz Tespit Edilemedi")
+                          : Text(
+                              "Tespit Edilen Yüz Sayısı:" +
+                                  facecount.toString(),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 20),
+                            ),
                       if (kontrol == false)
                         SizedBox(
-                          height: 200,
-                          width: 200,
-                          child: Text(message.toString()),
-                        )
+                            width: 400,
+                            height: 200,
+                            child: Image.network(message.toString()))
                       else
-                        Text('')
+                        CircularProgressIndicator()
                     ],
                   ),
-            ElevatedButton(onPressed: uploadImage, child: Text("Yükle")),
+            ElevatedButton(
+                onPressed: () async {
+                  await uploadImage();
+                  setState(() {
+                    kontrol = false;
+                  });
+                },
+                child: Text("Yükle")),
           ],
         ),
       ),
